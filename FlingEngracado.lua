@@ -1,10 +1,10 @@
--- Script de Empurrão Aleatório por Colisão (Sem Bloco Visível)
+-- Script Fling Real (Funciona em Jogadores)
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 
--- Interface (GUI)
+-- Interface
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "FlingAleatorioGui"
+screenGui.Name = "RealFlingGui"
 screenGui.Parent = player:WaitForChild("PlayerGui")
 screenGui.ResetOnSpawn = false
 
@@ -17,61 +17,48 @@ button.TextColor3 = Color3.fromRGB(255, 255, 255)
 button.Font = Enum.Font.SourceSansBold
 button.TextSize = 16
 button.Parent = screenGui
-
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 10)
-corner.Parent = button
+Instance.new("UICorner", button).CornerRadius = UDim.new(0, 10)
 
 local ativado = false
 local tool = nil
 
--- Função de Arremesso Aleatório
 local function criarFling()
     local t = Instance.new("Tool")
-    t.Name = " "
+    t.Name = "Fling Real"
     t.RequiresHandle = true
     t.CanBeDropped = false
     
     local handle = Instance.new("Part")
     handle.Name = "Handle"
-    handle.Size = Vector3.new(4, 5, 4) -- Área maior para tocar fácil
-    handle.Transparency = 1 -- 100% Invisível (sem bloco azul)
+    handle.Size = Vector3.new(3, 3, 3)
+    handle.Transparency = 1 -- Invisível
     handle.CanCollide = false
-    handle.Massless = true
     handle.Parent = t
     
     handle.Touched:Connect(function(hit)
         if not ativado then return end
         local target = hit.Parent
-        local targetHum = target:FindFirstChildOfClass("Humanoid")
         local targetRoot = target:FindFirstChild("HumanoidRootPart")
         
-        if targetHum and targetRoot and target ~= player.Character then
-            if not target:FindFirstChild("FlingForce") then
-                local tag = Instance.new("BoolValue", target)
-                tag.Name = "FlingForce"
-                game.Debris:AddItem(tag, 0.3) -- Rapidez para tocar em vários seguidos
-                
-                targetHum.PlatformStand = true
-                
-                -- Cálculo de direção e força aleatória
-                local direcaoBase = (targetRoot.Position - player.Character.HumanoidRootPart.Position).Unit
-                local forcaAleatoria = math.random(150, 250) -- Distância legal e variada
-                local giroAleatorio = math.random(-50, 50)
-                
-                -- Aplica o impulso caótico
-                targetRoot.Velocity = (direcaoBase + Vector3.new(0, 0.3, 0)) * forcaAleatoria
-                targetRoot.RotVelocity = Vector3.new(giroAleatorio, giroAleatorio, giroAleatorio)
-                
-                task.wait(1.5)
-                targetHum.PlatformStand = false
-            end
+        if targetRoot and target ~= player.Character then
+            -- O segredo para jogadores reais: Força Rotacional Extrema
+            local bodyVelocity = Instance.new("BodyVelocity")
+            bodyVelocity.Velocity = Vector3.new(500, 500, 500) -- Joga pra longe
+            bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+            bodyVelocity.Parent = targetRoot
+            
+            local bodyAngular = Instance.new("BodyAngularVelocity")
+            bodyAngular.AngularVelocity = Vector3.new(0, 99999, 0) -- Faz girar e bugar a física
+            bodyAngular.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+            bodyAngular.Parent = targetRoot
+            
+            game.Debris:AddItem(bodyVelocity, 0.2)
+            game.Debris:AddItem(bodyAngular, 0.2)
         end
     end)
     return t
 end
 
--- Lógica do Botão
 button.MouseButton1Click:Connect(function()
     ativado = not ativado
     if ativado then
@@ -84,4 +71,4 @@ button.MouseButton1Click:Connect(function()
         button.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
         if tool then tool:Destroy() end
     end
-end)        
+end)
