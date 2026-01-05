@@ -1,10 +1,10 @@
 local player = game.Players.LocalPlayer
-local runService = game:GetService("RunService")
 local character = player.Character or player.CharacterAdded:Wait()
+local hrp = character:WaitForChild("HumanoidRootPart")
 
 -- Interface
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "FlingModernoGui"
+screenGui.Name = "FlingFixGui"
 screenGui.Parent = player:WaitForChild("PlayerGui")
 screenGui.ResetOnSpawn = false
 
@@ -20,30 +20,16 @@ button.Parent = screenGui
 Instance.new("UICorner", button)
 
 local ativado = false
-local tool = nil
-
--- SEGURANÇA MÁXIMA: Mantém você estável 
-runService.Heartbeat:Connect(function()
-    if ativado and character:FindFirstChild("HumanoidRootPart") then
-        local root = character.HumanoidRootPart
-        -- Mantém sua velocidade angular em 0 para você nunca girar
-        root.RotVelocity = Vector3.new(0, 0, 0)
-        -- Impede que forças externas te joguem longe
-        if root.Velocity.Magnitude > 50 then
-            root.Velocity = root.Velocity.Unit * 10
-        end
-    end
-end)
 
 local function criarTool()
     local t = Instance.new("Tool")
-    t.Name = "BugFisica"
+    t.Name = "EmpurraoEstavel"
     t.RequiresHandle = true
     t.CanBeDropped = false
     
     local handle = Instance.new("Part")
     handle.Name = "Handle"
-    handle.Size = Vector3.new(5, 5, 5) -- Área maior para tocar antes de ser repelido
+    handle.Size = Vector3.new(4, 4, 4)
     handle.Transparency = 1 
     handle.CanCollide = false
     handle.Massless = true
@@ -55,18 +41,25 @@ local function criarTool()
         local targetRoot = target:FindFirstChild("HumanoidRootPart")
         
         if targetRoot and target ~= character then
-            -- Aplica a velocidade de "Empurrão Legal"
-            local direcao = (targetRoot.Position - character.HumanoidRootPart.Position).Unit
+            -- 1. CONGELA VOCÊ (Impede ser jogado pra trás)
+            local posAntiga = hrp.CFrame
+            hrp.Anchored = true 
             
-            -- O "Soco" de física
-            targetRoot.Velocity = (direcao * 110) + Vector3.new(0, 40, 0)
+            -- 2. EMPURRÃO LEGAL (Aplica força no alvo)
+            local direcao = (targetRoot.Position - hrp.Position).Unit
+            targetRoot.Velocity = (direcao * 100) + Vector3.new(0, 40, 0)
             
-            -- Cria o efeito de giro engraçado no alvo
+            -- Giro engraçado
             local bv = Instance.new("BodyAngularVelocity")
             bv.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-            bv.AngularVelocity = Vector3.new(0, 80, 0) -- Giro suave e engraçado
+            bv.AngularVelocity = Vector3.new(0, 50, 0)
             bv.Parent = targetRoot
-            game.Debris:AddItem(bv, 0.1)
+            game.Debris:AddItem(bv, 0.2)
+            
+            -- 3. DESCONGELA (Rápido o suficiente para você não notar)
+            task.wait(0.1)
+            hrp.Anchored = false
+            hrp.CFrame = posAntiga -- Garante que você não saiu do lugar
         end
     end)
     return t
@@ -77,11 +70,12 @@ button.MouseButton1Click:Connect(function()
     if ativado then
         button.Text = "FLING: ATIVO"
         button.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
-        tool = criarTool()
+        local tool = criarTool()
         tool.Parent = player.Backpack
     else
         button.Text = "FLING: DESLIGADO"
         button.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
-        if tool then tool:Destroy() end
+        local t = player.Backpack:FindFirstChild("EmpurraoEstavel") or character:FindFirstChild("EmpurraoEstavel")
+        if t then t:Destroy() end
     end
-end)        
+end)            
