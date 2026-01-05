@@ -1,10 +1,9 @@
--- Script Fling Touch Anti-Bug (Você não voa)
-local player = game.Players.LocalPlayer
-local runService = game:GetService("RunService")
+    local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
 
 -- Interface
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "FlingFinalGui"
+screenGui.Name = "FlingTouchSuave"
 screenGui.Parent = player:WaitForChild("PlayerGui")
 screenGui.ResetOnSpawn = false
 
@@ -22,25 +21,17 @@ Instance.new("UICorner", button)
 local ativado = false
 local tool = nil
 
--- SEGURANÇA: Impede que VOCÊ voe ou gire
-runService.RenderStepped:Connect(function()
-    if ativado and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-        local root = player.Character.HumanoidRootPart
-        root.Velocity = Vector3.new(0, 0, 0)
-        root.RotVelocity = Vector3.new(0, 0, 0)
-    end
-end)
-
+-- Função para criar a ferramenta invisível de empurrão
 local function criarTool()
     local t = Instance.new("Tool")
-    t.Name = " "
+    t.Name = "Empurrao"
     t.RequiresHandle = true
     t.CanBeDropped = false
     
     local handle = Instance.new("Part")
     handle.Name = "Handle"
-    handle.Size = Vector3.new(3, 3, 3)
-    handle.Transparency = 1 -- Totalmente invisível
+    handle.Size = Vector3.new(2, 2, 2)
+    handle.Transparency = 1 
     handle.CanCollide = false
     handle.Parent = t
     
@@ -49,20 +40,24 @@ local function criarTool()
         local target = hit.Parent
         local targetRoot = target:FindFirstChild("HumanoidRootPart")
         
+        -- Garante que atinja players e NPCs, mas não você
         if targetRoot and target ~= player.Character then
-            -- Força de arremesso estilo 'Engraçado' (Não atravessa parede fácil)
-            local pushForce = Instance.new("BodyVelocity")
-            pushForce.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-            pushForce.Velocity = (targetRoot.Position - player.Character.HumanoidRootPart.Position).Unit * 130 + Vector3.new(0, 40, 0)
-            pushForce.Parent = targetRoot
+            -- Força de Impulso (LinearVelocity) - Mais natural que o BodyVelocity
+            local attachment = Instance.new("Attachment", targetRoot)
+            local force = Instance.new("LinearVelocity", attachment)
             
-            local spinForce = Instance.new("BodyAngularVelocity")
-            spinForce.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-            spinForce.AngularVelocity = Vector3.new(0, 5000, 0) -- Giro para o alvo voar
-            spinForce.Parent = targetRoot
+            force.MaxForce = 100000 -- Força suficiente para players
+            force.VectorVelocity = (targetRoot.Position - player.Character.HumanoidRootPart.Position).Unit * 80 + Vector3.new(0, 35, 0)
+            force.Attachment0 = attachment
             
-            game.Debris:AddItem(pushForce, 0.1)
-            game.Debris:AddItem(spinForce, 0.1)
+            -- Giro leve para o efeito engraçado do vídeo
+            local torque = Instance.new("AngularVelocity", attachment)
+            torque.MaxTorque = 50000
+            torque.AngularVelocity = Vector3.new(math.random(-10, 10), 40, math.random(-10, 10))
+            torque.Attachment0 = attachment
+            
+            -- Remove a força quase instantaneamente para virar um "impulso"
+            game.Debris:AddItem(attachment, 0.15)
         end
     end)
     return t
@@ -80,4 +75,4 @@ button.MouseButton1Click:Connect(function()
         button.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
         if tool then tool:Destroy() end
     end
-end)    
+end)
