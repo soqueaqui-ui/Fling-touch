@@ -1,10 +1,9 @@
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
-local hrp = character:WaitForChild("HumanoidRootPart")
 
 -- Interface
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "FlingFixGui"
+screenGui.Name = "FlingWallGui"
 screenGui.Parent = player:WaitForChild("PlayerGui")
 screenGui.ResetOnSpawn = false
 
@@ -23,16 +22,16 @@ local ativado = false
 
 local function criarTool()
     local t = Instance.new("Tool")
-    t.Name = "EmpurraoEstavel"
+    t.Name = "FlingAtravessa"
     t.RequiresHandle = true
     t.CanBeDropped = false
     
     local handle = Instance.new("Part")
     handle.Name = "Handle"
-    handle.Size = Vector3.new(4, 4, 4)
+    handle.Size = Vector3.new(3, 3, 3)
     handle.Transparency = 1 
     handle.CanCollide = false
-    handle.Massless = true
+    handle.Massless = true -- Impede que você seja arrastado
     handle.Parent = t
     
     handle.Touched:Connect(function(hit)
@@ -41,25 +40,19 @@ local function criarTool()
         local targetRoot = target:FindFirstChild("HumanoidRootPart")
         
         if targetRoot and target ~= character then
-            -- 1. CONGELA VOCÊ (Impede ser jogado pra trás)
-            local posAntiga = hrp.CFrame
-            hrp.Anchored = true 
+            -- VELOCIDADE EXTREMA: O segredo para atravessar paredes
+            local direcao = (targetRoot.Position - character.HumanoidRootPart.Position).Unit
             
-            -- 2. EMPURRÃO LEGAL (Aplica força no alvo)
-            local direcao = (targetRoot.Position - hrp.Position).Unit
-            targetRoot.Velocity = (direcao * 100) + Vector3.new(0, 40, 0)
+            -- Aplicando força massiva instantânea
+            targetRoot.Velocity = direcao * 5000 + Vector3.new(0, 1000, 0) 
             
-            -- Giro engraçado
-            local bv = Instance.new("BodyAngularVelocity")
-            bv.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-            bv.AngularVelocity = Vector3.new(0, 50, 0)
-            bv.Parent = targetRoot
-            game.Debris:AddItem(bv, 0.2)
+            -- Giro ultra-rápido para garantir o bug de colisão
+            local bav = Instance.new("BodyAngularVelocity")
+            bav.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+            bav.AngularVelocity = Vector3.new(0, 99999, 0)
+            bav.Parent = targetRoot
             
-            -- 3. DESCONGELA (Rápido o suficiente para você não notar)
-            task.wait(0.1)
-            hrp.Anchored = false
-            hrp.CFrame = posAntiga -- Garante que você não saiu do lugar
+            game.Debris:AddItem(bav, 0.1)
         end
     end)
     return t
@@ -75,7 +68,7 @@ button.MouseButton1Click:Connect(function()
     else
         button.Text = "FLING: DESLIGADO"
         button.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
-        local t = player.Backpack:FindFirstChild("EmpurraoEstavel") or character:FindFirstChild("EmpurraoEstavel")
+        local t = player.Backpack:FindFirstChild("FlingAtravessa") or character:FindFirstChild("FlingAtravessa")
         if t then t:Destroy() end
     end
-end)            
+end)
