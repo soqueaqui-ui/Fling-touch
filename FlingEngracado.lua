@@ -1,9 +1,9 @@
-local player = game.Players.LocalPlayer
+        local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 
 -- Interface
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "FlingWallGui"
+screenGui.Name = "FlingExpulsionGui"
 screenGui.Parent = player:WaitForChild("PlayerGui")
 screenGui.ResetOnSpawn = false
 
@@ -22,16 +22,16 @@ local ativado = false
 
 local function criarTool()
     local t = Instance.new("Tool")
-    t.Name = "FlingAtravessa"
+    t.Name = "FlingExtremo"
     t.RequiresHandle = true
     t.CanBeDropped = false
     
     local handle = Instance.new("Part")
     handle.Name = "Handle"
-    handle.Size = Vector3.new(3, 3, 3)
+    handle.Size = Vector3.new(4, 4, 4) -- Área de toque boa para não precisar "colar" no player
     handle.Transparency = 1 
     handle.CanCollide = false
-    handle.Massless = true -- Impede que você seja arrastado
+    handle.Massless = true 
     handle.Parent = t
     
     handle.Touched:Connect(function(hit)
@@ -40,19 +40,20 @@ local function criarTool()
         local targetRoot = target:FindFirstChild("HumanoidRootPart")
         
         if targetRoot and target ~= character then
-            -- VELOCIDADE EXTREMA: O segredo para atravessar paredes
+            -- VELOCIDADE DE EXPULSÃO (Joga para fora do mapa)
             local direcao = (targetRoot.Position - character.HumanoidRootPart.Position).Unit
             
-            -- Aplicando força massiva instantânea
-            targetRoot.Velocity = direcao * 5000 + Vector3.new(0, 1000, 0) 
+            -- Aplica uma força absurda para garantir que ele saia do mapa
+            targetRoot.Velocity = (direcao * 10000) + Vector3.new(0, 5000, 0) 
             
-            -- Giro ultra-rápido para garantir o bug de colisão
+            -- Giro violento para desestabilizar a física do alvo
             local bav = Instance.new("BodyAngularVelocity")
             bav.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-            bav.AngularVelocity = Vector3.new(0, 99999, 0)
+            bav.AngularVelocity = Vector3.new(10000, 10000, 10000)
             bav.Parent = targetRoot
             
-            game.Debris:AddItem(bav, 0.1)
+            -- Remove a força logo em seguida (O alvo já vai estar longe)
+            game.Debris:AddItem(bav, 0.05)
         end
     end)
     return t
@@ -68,7 +69,7 @@ button.MouseButton1Click:Connect(function()
     else
         button.Text = "FLING: DESLIGADO"
         button.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
-        local t = player.Backpack:FindFirstChild("FlingAtravessa") or character:FindFirstChild("FlingAtravessa")
+        local t = player.Backpack:FindFirstChild("FlingExtremo") or character:FindFirstChild("FlingExtremo")
         if t then t:Destroy() end
     end
 end)
