@@ -1,72 +1,65 @@
--- Script Fling Real com Limitador de Colisão
+-- Script Fling Touch Definitivo (Rápido e Invisível)
 local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 
--- Interface
+-- Interface Simples
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "FlingSeguroGui"
+screenGui.Name = "FlingTouchGui"
 screenGui.Parent = player:WaitForChild("PlayerGui")
 screenGui.ResetOnSpawn = false
 
 local button = Instance.new("TextButton")
-button.Size = UDim2.new(0, 160, 0, 45)
-button.Position = UDim2.new(0.5, -80, 0.05, 0)
+button.Size = UDim2.new(0, 150, 0, 45)
+button.Position = UDim2.new(0.5, -75, 0.05, 0)
 button.Text = "FLING: DESLIGADO"
 button.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
 button.TextColor3 = Color3.fromRGB(255, 255, 255)
 button.Font = Enum.Font.SourceSansBold
 button.TextSize = 16
 button.Parent = screenGui
-Instance.new("UICorner", button).CornerRadius = UDim.new(0, 10)
+Instance.new("UICorner", button)
 
 local ativado = false
-local tool = nil
+local flingPart = nil
 
-local function criarFling()
-    local t = Instance.new("Tool")
-    t.Name = " "
-    t.RequiresHandle = true
-    t.CanBeDropped = false
-    
-    local handle = Instance.new("Part")
-    handle.Name = "Handle"
-    handle.Size = Vector3.new(2, 2, 2)
-    handle.Transparency = 1 -- Totalmente invisível
-    handle.CanCollide = false
-    handle.Parent = t
-    
-    handle.Touched:Connect(function(hit)
-        if not ativado then return end
-        local target = hit.Parent
-        local targetHum = target:FindFirstChildOfClass("Humanoid")
-        local targetRoot = target:FindFirstChild("HumanoidRootPart")
-        local myRoot = player.Character:FindFirstChild("HumanoidRootPart")
+-- Função principal do Fling
+local function toggleFling()
+    if ativado then
+        -- Cria uma parte invisível que gira muito rápido ao redor de ti
+        flingPart = Instance.new("Part")
+        flingPart.Name = "FlingPart"
+        flingPart.Transparency = 1 -- Totalmente invisível
+        flingPart.CanCollide = false
+        flingPart.Massless = true
+        flingPart.Size = Vector3.new(3, 3, 3)
+        flingPart.Parent = character:WaitForChild("HumanoidRootPart")
         
-        if targetRoot and target ~= player.Character and myRoot then
-            -- 1. Previne que VOCÊ voe junto
-            myRoot.Anchored = true 
-            
-            -- 2. Força de Empurrão (Ajustada para não atravessar paredes)
-            local bodyVelocity = Instance.new("BodyVelocity")
-            -- Velocidade de 120 é forte mas respeita colisões melhor que 500
-            bodyVelocity.Velocity = (targetRoot.Position - myRoot.Position).Unit * 120 + Vector3.new(0, 20, 0) 
-            bodyVelocity.MaxForce = Vector3.new(1000000, 1000000, 1000000) -- Força alta, mas não infinita
-            bodyVelocity.Parent = targetRoot
-            
-            -- 3. Giro Controlado (Evita o efeito 'Noclip')
-            local bodyAngular = Instance.new("BodyAngularVelocity")
-            bodyAngular.AngularVelocity = Vector3.new(0, 3000, 0) -- Giro suficiente para ejetar, mas mantendo colisão
-            bodyAngular.MaxTorque = Vector3.new(1000000, 1000000, 1000000)
-            bodyAngular.Parent = targetRoot
-            
-            game.Debris:AddItem(bodyVelocity, 0.15)
-            game.Debris:AddItem(bodyAngular, 0.15)
-            
-            task.wait(0.1)
-            myRoot.Anchored = false 
-        end
-    end)
-    return t
+        local weld = Instance.new("Weld", flingPart)
+        weld.Part0 = flingPart
+        weld.Part1 = character.HumanoidRootPart
+        
+        local angularV = Instance.new("AngularVelocity", flingPart)
+        angularV.MaxTorque = math.huge
+        angularV.AngularVelocity = Vector3.new(0, 99999, 0) -- Velocidade extrema para o fling
+        angularV.RelativeTo = Enum.RelativeTo.Attachment0
+        
+        local attachment = Instance.new("Attachment", flingPart)
+        angularV.Attachment0 = attachment
+
+        -- Detecta o toque e aplica o arremesso
+        flingPart.Touched:Connect(function(hit)
+            local target = hit.Parent
+            if target:FindFirstChildOfClass("Humanoid") and target ~= character then
+                local root = target:FindFirstChild("HumanoidRootPart")
+                if root then
+                    -- Arremessa o alvo com base no giro
+                    root.Velocity = Vector3.new(9999, 9999, 9999) 
+                end
+            end
+        end)
+    else
+        if flingPart then flingPart:Destroy() end
+    end
 end
 
 button.MouseButton1Click:Connect(function()
@@ -74,11 +67,9 @@ button.MouseButton1Click:Connect(function()
     if ativado then
         button.Text = "FLING: ATIVO"
         button.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
-        tool = criarFling()
-        tool.Parent = player.Backpack
     else
         button.Text = "FLING: DESLIGADO"
         button.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
-        if tool then tool:Destroy() end
     end
-end)        
+    toggleFling()
+end)
