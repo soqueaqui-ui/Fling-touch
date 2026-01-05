@@ -1,101 +1,58 @@
 local Players = game:GetService("Players")
 local plr = Players.LocalPlayer
-local character = plr.Character or plr.CharacterAdded:Wait()
+local RunService = game:GetService("RunService")
 
--- --- INTERFACE MODERNA ---
+-- --- INTERFACE DE TESTE ---
 local SysBroker = Instance.new("ScreenGui")
-SysBroker.Name = "FlingControl"
+SysBroker.Name = "TesteFling"
 SysBroker.Parent = game.CoreGui
 
-local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 180, 0, 90)
-MainFrame.Position = UDim2.new(0.5, -90, 0.1, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-MainFrame.Active = true
-MainFrame.Draggable = true -- Você pode arrastar
-MainFrame.Parent = SysBroker
+local Button = Instance.new("TextButton")
+Button.Size = UDim2.new(0, 200, 0, 50)
+Button.Position = UDim2.new(0.5, -100, 0.2, 0)
+Button.Text = "TOUCH FLING: OFF"
+Button.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+Button.Parent = SysBroker
 
-local Corner = Instance.new("UICorner", MainFrame)
+-- --- PARTE EXTRAÍDA DO SYSTEMBROKEN ---
+local FlingToggled = false
 
-local ToggleBtn = Instance.new("TextButton")
-ToggleBtn.Size = UDim2.new(0.85, 0, 0, 40)
-ToggleBtn.Position = UDim2.new(0.075, 0, 0.3, 0)
-ToggleBtn.Text = "FLING: OFF"
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
-ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-ToggleBtn.Font = Enum.Font.SourceSansBold
-ToggleBtn.TextSize = 16
-ToggleBtn.Parent = MainFrame
-
-Instance.new("UICorner", ToggleBtn)
-
--- --- LÓGICA DO FLING (BUG DE COLISÃO) ---
-local ativado = false
-
-local function aplicarBugFling(targetRoot, targetHum)
-    if targetRoot and targetHum then
-        -- 1. FAZ CAIR (O personagem "deita" e fica mole)
-        targetHum.PlatformStand = true
-        
-        -- 2. EMPURRÃO CONTROLADO (Direção e força média)
-        local direcao = (targetRoot.Position - character.HumanoidRootPart.Position).Unit
-        -- 100 de força empurra longe mas não deleta do mapa
-        targetRoot.Velocity = (direcao * 100) + Vector3.new(0, 40, 0)
-        
-        -- 3. GIRO DE COLISÃO (O que causa o "Fling")
-        local bav = Instance.new("BodyAngularVelocity")
-        bav.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-        -- Girar rápido nos eixos X e Z faz ele capotar
-        bav.AngularVelocity = Vector3.new(5000, 5000, 5000) 
-        bav.Parent = targetRoot
-        
-        -- Limpeza rápida para o cara não sumir do mapa
-        game:GetService("Debris"):AddItem(bav, 0.1)
-        
-        -- Devolve o controle ao player após 2 segundos
-        task.delay(2, function()
-            if targetHum then targetHum.PlatformStand = false end
-        end)
-    end
+-- Esta é a lógica de rotação que estava no seu script
+local function CreateFling()
+    local Velocity = Instance.new("BodyAngularVelocity")
+    Velocity.Name = "Velocity_Asset"
+    Velocity.AngularVelocity = Vector3.new(0, 99999, 0) -- Força máxima do seu script
+    Velocity.MaxTorque = Vector3.new(0, math.huge, 0)
+    Velocity.P = math.huge
+    return Velocity
 end
 
--- Ferramenta de Toque
-local function criarTool()
-    local t = Instance.new("Tool")
-    t.Name = "FlingTouch"
-    t.RequiresHandle = true
-    t.CanBeDropped = false
-    
-    local handle = Instance.new("Part")
-    handle.Name = "Handle"
-    handle.Size = Vector3.new(4, 4, 4) -- Tamanho do toque
-    handle.Transparency = 1
-    handle.CanCollide = false
-    handle.Parent = t
-    
-    handle.Touched:Connect(function(hit)
-        if not ativado then return end
-        local target = hit.Parent
-        local tRoot = target:FindFirstChild("HumanoidRootPart")
-        local tHum = target:FindFirstChildOfClass("Humanoid")
+Button.MouseButton1Click:Connect(function()
+    FlingToggled = not FlingToggled
+    if FlingToggled then
+        Button.Text = "TOUCH FLING: ON"
+        Button.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
         
-        if tRoot and tHum and target ~= character then
-            aplicarBugFling(tRoot, tHum)
+        -- O Fling do SystemBroken funciona através do HumanoidRootPart do seu personagem
+        local root = plr.Character:FindFirstChild("HumanoidRootPart")
+        if root then
+            local vel = CreateFling()
+            vel.Parent = root
+            
+            -- Mantém o personagem girando e sem colisão interna para flingar outros
+            task.spawn(function()
+                while FlingToggled and task.wait() do
+                    for _, v in pairs(plr.Character:GetDescendants()) do
+                        if v:IsA("BasePart") then
+                            v.CanCollide = false
+                        end
+                    end
+                end
+                vel:Destroy()
+            end)
         end
-    end)
-    return t
-end
-
-ToggleBtn.MouseButton1Click:Connect(function()
-    ativado = not ativado
-    if ativado then
-        ToggleBtn.Text = "FLING: ON"
-        ToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
-        criarTool().Parent = plr.Backpack
     else
-        ToggleBtn.Text = "FLING: OFF"
-        ToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
-        local tool = plr.Backpack:FindFirstChild("FlingTouch") or character:FindFirstChild("FlingTouch")
-        if tool then tool:Destroy() end
+        Button.Text = "TOUCH FLING: OFF"
+        Button.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
     end
-end)            
+end)    
