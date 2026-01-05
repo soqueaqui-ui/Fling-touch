@@ -1,9 +1,10 @@
 local player = game.Players.LocalPlayer
+local runService = game:GetService("RunService")
 local character = player.Character or player.CharacterAdded:Wait()
 
 -- Interface
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "FlingLegacyGui"
+screenGui.Name = "FlingModernoGui"
 screenGui.Parent = player:WaitForChild("PlayerGui")
 screenGui.ResetOnSpawn = false
 
@@ -21,38 +22,51 @@ Instance.new("UICorner", button)
 local ativado = false
 local tool = nil
 
+-- SEGURANÇA MÁXIMA: Mantém você estável 
+runService.Heartbeat:Connect(function()
+    if ativado and character:FindFirstChild("HumanoidRootPart") then
+        local root = character.HumanoidRootPart
+        -- Mantém sua velocidade angular em 0 para você nunca girar
+        root.RotVelocity = Vector3.new(0, 0, 0)
+        -- Impede que forças externas te joguem longe
+        if root.Velocity.Magnitude > 50 then
+            root.Velocity = root.Velocity.Unit * 10
+        end
+    end
+end)
+
 local function criarTool()
     local t = Instance.new("Tool")
-    t.Name = "EmpurraoLegal"
+    t.Name = "BugFisica"
     t.RequiresHandle = true
     t.CanBeDropped = false
     
     local handle = Instance.new("Part")
     handle.Name = "Handle"
-    handle.Size = Vector3.new(4, 4, 4) -- Área de toque maior para "vencer" a distância do player
+    handle.Size = Vector3.new(5, 5, 5) -- Área maior para tocar antes de ser repelido
     handle.Transparency = 1 
     handle.CanCollide = false
+    handle.Massless = true
     handle.Parent = t
     
-    -- O SEGREDO: Faz a ferramenta girar invisivelmente na sua mão
-    local bv = Instance.new("AngularVelocity", handle)
-    bv.MaxTorque = math.huge
-    bv.AngularVelocity = Vector3.new(0, 9999, 0) -- Giro invisível que causa o impacto
-    local att = Instance.new("Attachment", handle)
-    bv.Attachment0 = att
-
     handle.Touched:Connect(function(hit)
         if not ativado then return end
         local target = hit.Parent
         local targetRoot = target:FindFirstChild("HumanoidRootPart")
         
-        if targetRoot and target ~= player.Character then
-            -- Aplica uma velocidade direta para vencer a resistência do player
-            local direcao = (targetRoot.Position - player.Character.HumanoidRootPart.Position).Unit
-            targetRoot.Velocity = (direcao * 100) + Vector3.new(0, 40, 0)
+        if targetRoot and target ~= character then
+            -- Aplica a velocidade de "Empurrão Legal"
+            local direcao = (targetRoot.Position - character.HumanoidRootPart.Position).Unit
             
-            -- Adiciona um pequeno giro no alvo para o efeito engraçado
-            targetRoot.RotVelocity = Vector3.new(0, 50, 0)
+            -- O "Soco" de física
+            targetRoot.Velocity = (direcao * 110) + Vector3.new(0, 40, 0)
+            
+            -- Cria o efeito de giro engraçado no alvo
+            local bv = Instance.new("BodyAngularVelocity")
+            bv.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+            bv.AngularVelocity = Vector3.new(0, 80, 0) -- Giro suave e engraçado
+            bv.Parent = targetRoot
+            game.Debris:AddItem(bv, 0.1)
         end
     end)
     return t
@@ -70,4 +84,4 @@ button.MouseButton1Click:Connect(function()
         button.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
         if tool then tool:Destroy() end
     end
-end)    
+end)        
