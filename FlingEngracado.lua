@@ -1,10 +1,11 @@
--- Script Fling Touch Definitivo (Rápido e Invisível)
+-- Script Fling Touch Ultra (Método de Vibração de Física)
 local player = game.Players.LocalPlayer
+local runService = game:GetService("RunService")
 local character = player.Character or player.CharacterAdded:Wait()
 
--- Interface Simples
+-- Interface
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "FlingTouchGui"
+screenGui.Name = "UltraFlingGui"
 screenGui.Parent = player:WaitForChild("PlayerGui")
 screenGui.ResetOnSpawn = false
 
@@ -20,46 +21,22 @@ button.Parent = screenGui
 Instance.new("UICorner", button)
 
 local ativado = false
-local flingPart = nil
+local flingConnection = nil
 
--- Função principal do Fling
-local function toggleFling()
-    if ativado then
-        -- Cria uma parte invisível que gira muito rápido ao redor de ti
-        flingPart = Instance.new("Part")
-        flingPart.Name = "FlingPart"
-        flingPart.Transparency = 1 -- Totalmente invisível
-        flingPart.CanCollide = false
-        flingPart.Massless = true
-        flingPart.Size = Vector3.new(3, 3, 3)
-        flingPart.Parent = character:WaitForChild("HumanoidRootPart")
+-- Lógica de Fling por Vibração (Mais difícil de bloquear)
+local function startFling()
+    flingConnection = runService.Heartbeat:Connect(function()
+        if not ativado or not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then return end
         
-        local weld = Instance.new("Weld", flingPart)
-        weld.Part0 = flingPart
-        weld.Part1 = character.HumanoidRootPart
+        local root = player.Character.HumanoidRootPart
+        local oldVelocity = root.Velocity
         
-        local angularV = Instance.new("AngularVelocity", flingPart)
-        angularV.MaxTorque = math.huge
-        angularV.AngularVelocity = Vector3.new(0, 99999, 0) -- Velocidade extrema para o fling
-        angularV.RelativeTo = Enum.RelativeTo.Attachment0
+        -- Cria uma velocidade "fantasma" que o motor de física usa para arremessar outros
+        root.Velocity = oldVelocity + Vector3.new(0, 5000, 0) -- Força vertical invisível
         
-        local attachment = Instance.new("Attachment", flingPart)
-        angularV.Attachment0 = attachment
-
-        -- Detecta o toque e aplica o arremesso
-        flingPart.Touched:Connect(function(hit)
-            local target = hit.Parent
-            if target:FindFirstChildOfClass("Humanoid") and target ~= character then
-                local root = target:FindFirstChild("HumanoidRootPart")
-                if root then
-                    -- Arremessa o alvo com base no giro
-                    root.Velocity = Vector3.new(9999, 9999, 9999) 
-                end
-            end
-        end)
-    else
-        if flingPart then flingPart:Destroy() end
-    end
+        runService.RenderStepped:Wait() -- Sincroniza com o frame do jogo
+        root.Velocity = oldVelocity -- Restaura a velocidade original para você não voar
+    end)
 end
 
 button.MouseButton1Click:Connect(function()
@@ -67,9 +44,13 @@ button.MouseButton1Click:Connect(function()
     if ativado then
         button.Text = "FLING: ATIVO"
         button.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+        if not flingConnection then startFling() end
     else
         button.Text = "FLING: DESLIGADO"
         button.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+        if flingConnection then
+            flingConnection:Disconnect()
+            flingConnection = nil
+        end
     end
-    toggleFling()
 end)
