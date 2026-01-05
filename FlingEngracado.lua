@@ -1,10 +1,10 @@
--- Script Fling Touch com Ferramenta Invisível (Ajustado)
+-- Script Fling Touch Anti-Bug (Você não voa)
 local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
+local runService = game:GetService("RunService")
 
 -- Interface
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "FlingToolGui"
+screenGui.Name = "FlingFinalGui"
 screenGui.Parent = player:WaitForChild("PlayerGui")
 screenGui.ResetOnSpawn = false
 
@@ -22,10 +22,18 @@ Instance.new("UICorner", button)
 local ativado = false
 local tool = nil
 
--- Função para criar a ferramenta que funcionou nos NPCs
+-- SEGURANÇA: Impede que VOCÊ voe ou gire
+runService.RenderStepped:Connect(function()
+    if ativado and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        local root = player.Character.HumanoidRootPart
+        root.Velocity = Vector3.new(0, 0, 0)
+        root.RotVelocity = Vector3.new(0, 0, 0)
+    end
+end)
+
 local function criarTool()
     local t = Instance.new("Tool")
-    t.Name = " " -- Nome invisível
+    t.Name = " "
     t.RequiresHandle = true
     t.CanBeDropped = false
     
@@ -41,25 +49,20 @@ local function criarTool()
         local target = hit.Parent
         local targetRoot = target:FindFirstChild("HumanoidRootPart")
         
-        -- Verifica se é um alvo válido e NÃO é você
         if targetRoot and target ~= player.Character then
-            -- Aplica a força apenas no alvo
-            local pos = targetRoot.Position
+            -- Força de arremesso estilo 'Engraçado' (Não atravessa parede fácil)
+            local pushForce = Instance.new("BodyVelocity")
+            pushForce.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+            pushForce.Velocity = (targetRoot.Position - player.Character.HumanoidRootPart.Position).Unit * 130 + Vector3.new(0, 40, 0)
+            pushForce.Parent = targetRoot
             
-            -- Cria o efeito "engraçado" de girar sem atravessar paredes
-            local bf = Instance.new("BodyVelocity")
-            bf.MaxForce = Vector3.new(1, 1, 1) * 500000
-            bf.Velocity = (targetRoot.Position - player.Character.HumanoidRootPart.Position).Unit * 100 + Vector3.new(0, 50, 0)
-            bf.Parent = targetRoot
+            local spinForce = Instance.new("BodyAngularVelocity")
+            spinForce.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+            spinForce.AngularVelocity = Vector3.new(0, 5000, 0) -- Giro para o alvo voar
+            spinForce.Parent = targetRoot
             
-            local bav = Instance.new("BodyAngularVelocity")
-            bav.MaxTorque = Vector3.new(1, 1, 1) * 500000
-            bav.AngularVelocity = Vector3.new(math.random(-100, 100), 500, math.random(-100, 100)) -- Giro engraçado
-            bav.Parent = targetRoot
-            
-            -- Remove a força rápido para evitar o bug de atravessar paredes
-            game.Debris:AddItem(bf, 0.2)
-            game.Debris:AddItem(bav, 0.2)
+            game.Debris:AddItem(pushForce, 0.1)
+            game.Debris:AddItem(spinForce, 0.1)
         end
     end)
     return t
@@ -77,4 +80,4 @@ button.MouseButton1Click:Connect(function()
         button.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
         if tool then tool:Destroy() end
     end
-end)
+end)    
