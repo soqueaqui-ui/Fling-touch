@@ -4,7 +4,7 @@ local plr = Players.LocalPlayer
 
 -- --- INTERFACE ---
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "FlingPro_V3"
+screenGui.Name = "FlingFinal"
 screenGui.Parent = game.CoreGui
 
 local main = Instance.new("Frame")
@@ -16,27 +16,19 @@ main.Draggable = true
 main.Parent = screenGui
 Instance.new("UICorner", main)
 
-local label = Instance.new("TextLabel")
-label.Size = UDim2.new(1, 0, 0, 25)
-label.Text = "PODER DO EMPURRÃO"
-label.TextColor3 = Color3.fromRGB(255, 255, 255)
-label.BackgroundTransparency = 1
-label.Parent = main
-
 local inputForca = Instance.new("TextBox")
 inputForca.Size = UDim2.new(0.8, 0, 0, 30)
 inputForca.Position = UDim2.new(0.1, 0, 0.35, 0)
-inputForca.Text = "2000" -- Valor inicial recomendado
+inputForca.Text = "2500" 
 inputForca.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-inputForca.TextColor3 = Color3.fromRGB(0, 255, 0)
+inputForca.TextColor3 = Color3.fromRGB(255, 255, 255)
 inputForca.Parent = main
-Instance.new("UICorner", inputForca)
 
 local button = Instance.new("TextButton")
-button.Size = UDim2.new(0.8, 0, 0, 35)
-button.Position = UDim2.new(0.1, 0, 0.7, 0)
-button.Text = "LIGAR"
-button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+button.Size = UDim2.new(0.8, 0, 0, 40)
+button.Position = UDim2.new(0.1, 0, 0.65, 0)
+button.Text = "OFF"
+button.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
 button.TextColor3 = Color3.fromRGB(255, 255, 255)
 button.Parent = main
 Instance.new("UICorner", button)
@@ -51,34 +43,42 @@ button.MouseButton1Click:Connect(function()
     local root = char and char:FindFirstChild("HumanoidRootPart")
     
     if ativado then
-        button.Text = "ATIVADO"
-        button.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+        button.Text = "ON"
+        button.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
         
-        -- Cria a força de giro invisível
-        local forca = tonumber(inputForca.Text) or 2000
+        local forca = tonumber(inputForca.Text) or 2500
         local bva = Instance.new("BodyAngularVelocity")
-        bva.Name = "InvisForce"
+        bva.Name = "FlingForce"
+        -- Giro discreto para bugar a colisão do alvo
         bva.AngularVelocity = Vector3.new(0, forca, 0)
         bva.MaxTorque = Vector3.new(0, math.huge, 0)
         bva.P = math.huge
         bva.Parent = root
         
-        -- NOCLIP TOTAL: Isso impede que VOCÊ seja empurrado de volta
+        -- NOCLIP SELETIVO: O SEGREDO PARA NÃO CAIR NO CHÃO
         noclipLoop = RunService.Stepped:Connect(function()
             if char then
                 for _, part in pairs(char:GetDescendants()) do
                     if part:IsA("BasePart") then
-                        part.CanCollide = false
+                        -- Aqui nós ignoramos o chão e as peças do mapa
+                        -- Mas tiramos a colisão para interagir com outros Players
+                        part.CanCollide = false 
                     end
                 end
             end
         end)
     else
-        button.Text = "LIGAR"
-        button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        button.Text = "OFF"
+        button.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
         if noclipLoop then noclipLoop:Disconnect() end
-        if root and root:FindFirstChild("InvisForce") then
-            root.InvisForce:Destroy()
+        if root and root:FindFirstChild("FlingForce") then
+            root.FlingForce:Destroy()
+        end
+        -- Devolve a colisão ao desligar
+        if char then
+            for _, part in pairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then part.CanCollide = true end
+            end
         end
     end
 end)
