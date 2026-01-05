@@ -1,15 +1,15 @@
-    local player = game.Players.LocalPlayer
+local player = game.Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 
 -- Interface
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "FlingTouchSuave"
+screenGui.Name = "FlingClassicoGui"
 screenGui.Parent = player:WaitForChild("PlayerGui")
 screenGui.ResetOnSpawn = false
 
 local button = Instance.new("TextButton")
-button.Size = UDim2.new(0, 150, 0, 45)
-button.Position = UDim2.new(0.5, -75, 0.05, 0)
+button.Size = UDim2.new(0, 160, 0, 45)
+button.Position = UDim2.new(0.5, -80, 0.05, 0)
 button.Text = "FLING: DESLIGADO"
 button.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
 button.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -21,16 +21,15 @@ Instance.new("UICorner", button)
 local ativado = false
 local tool = nil
 
--- Função para criar a ferramenta invisível de empurrão
 local function criarTool()
     local t = Instance.new("Tool")
-    t.Name = "Empurrao"
+    t.Name = "BugFisica"
     t.RequiresHandle = true
     t.CanBeDropped = false
     
     local handle = Instance.new("Part")
     handle.Name = "Handle"
-    handle.Size = Vector3.new(2, 2, 2)
+    handle.Size = Vector3.new(3, 3, 3)
     handle.Transparency = 1 
     handle.CanCollide = false
     handle.Parent = t
@@ -40,24 +39,23 @@ local function criarTool()
         local target = hit.Parent
         local targetRoot = target:FindFirstChild("HumanoidRootPart")
         
-        -- Garante que atinja players e NPCs, mas não você
         if targetRoot and target ~= player.Character then
-            -- Força de Impulso (LinearVelocity) - Mais natural que o BodyVelocity
-            local attachment = Instance.new("Attachment", targetRoot)
-            local force = Instance.new("LinearVelocity", attachment)
+            -- Aplica um "tranco" de giro (Método que funciona em jogos antigos)
+            local bodyAngular = Instance.new("BodyAngularVelocity")
+            bodyAngular.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+            -- Velocidade de 150 é o ponto ideal para um empurrão legal sem sumir com o player
+            bodyAngular.AngularVelocity = Vector3.new(0, 150, 0) 
+            bodyAngular.Parent = targetRoot
             
-            force.MaxForce = 100000 -- Força suficiente para players
-            force.VectorVelocity = (targetRoot.Position - player.Character.HumanoidRootPart.Position).Unit * 80 + Vector3.new(0, 35, 0)
-            force.Attachment0 = attachment
+            -- Empurra um pouco para trás e para cima
+            local bodyVelocity = Instance.new("BodyVelocity")
+            bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+            bodyVelocity.Velocity = (targetRoot.Position - player.Character.HumanoidRootPart.Position).Unit * 60 + Vector3.new(0, 25, 0)
+            bodyVelocity.Parent = targetRoot
             
-            -- Giro leve para o efeito engraçado do vídeo
-            local torque = Instance.new("AngularVelocity", attachment)
-            torque.MaxTorque = 50000
-            torque.AngularVelocity = Vector3.new(math.random(-10, 10), 40, math.random(-10, 10))
-            torque.Attachment0 = attachment
-            
-            -- Remove a força quase instantaneamente para virar um "impulso"
-            game.Debris:AddItem(attachment, 0.15)
+            -- Remove as forças rápido para ser apenas um empurrão
+            game.Debris:AddItem(bodyAngular, 0.2)
+            game.Debris:AddItem(bodyVelocity, 0.2)
         end
     end)
     return t
@@ -75,4 +73,4 @@ button.MouseButton1Click:Connect(function()
         button.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
         if tool then tool:Destroy() end
     end
-end)
+end)    
