@@ -1,40 +1,41 @@
--- Script de Empurrão Físico Engraçado (Colocar dentro de uma Tool)
-local tool = script.Parent
-local forcaEmpurrao = 80 -- Ajuste a força aqui (80-150 é o ideal)
-local duracaoRagdoll = 2 -- Tempo que o jogador fica caído
 
-tool.Touched:Connect(function(hit)
-    local character = hit.Parent
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    local rootPart = character:FindFirstChild("HumanoidRootPart")
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local backpack = player.Backpack
 
-    -- Verifica se atingiu um jogador e se ele já não foi empurrado recentemente
-    if humanoid and rootPart and not character:FindFirstChild("Empurrado") then
-        
-        -- Marcador para evitar empurrões múltiplos
-        local tag = Instance.new("BoolValue")
-        tag.Name = "Empurrado"
-        tag.Parent = character
-        game.Debris:AddItem(tag, 1)
 
-        -- Faz o jogador cair (Efeito Ragdoll básico)
-        humanoid.PlatformStand = true
-        
-        -- Cálculo da direção (do atacante para a vítima)
-        local meuRoot = tool.Parent:FindFirstChild("HumanoidRootPart")
-        if meuRoot then
-            local direcao = (rootPart.Position - meuRoot.Position).Unit
-            direcao = (direcao + Vector3.new(0, 0.5, 0)).Unit -- Adiciona um pouco de altura
+local tool = Instance.new("Tool")
+tool.Name = "Empurrão Engraçado"
+tool.RequiresHandle = true
 
-            -- Aplica a força física (Respeita paredes)
-            rootPart:ApplyImpulse(direcao * rootPart.AssemblyMass * forcaEmpurrao)
 
-            -- Rotação aleatória engraçada
-            rootPart.RotVelocity = Vector3.new(math.random(-20, 20), math.random(-20, 20), math.random(-20, 20))
+local handle = Instance.new("Part")
+handle.Name = "Handle"
+handle.Size = Vector3.new(1, 1, 1)
+handle.Transparency = 0.5
+handle.BrickColor = BrickColor.new("Bright blue")
+handle.Parent = tool
+
+tool.Parent = backpack
+
+
+handle.Touched:Connect(function(hit)
+    local victimChar = hit.Parent
+    local humanoid = victimChar:FindFirstChildOfClass("Humanoid")
+    local rootPart = victimChar:FindFirstChild("HumanoidRootPart")
+
+    if humanoid and rootPart and victimChar ~= character then
+        if not victimChar:FindFirstChild("Empurrado") then
+            local tag = Instance.new("BoolValue", victimChar)
+            tag.Name = "Empurrado"
+            game.Debris:AddItem(tag, 1)
+
+            humanoid.PlatformStand = true
+            local direcao = (rootPart.Position - character.HumanoidRootPart.Position).Unit
+            rootPart:ApplyImpulse((direcao + Vector3.new(0, 0.5, 0)) * rootPart.AssemblyMass * 100)
+            
+            task.wait(2)
+            humanoid.PlatformStand = false
         end
-
-        -- Devolve o controle ao jogador após o tempo definido
-        task.wait(duracaoRagdoll)
-        humanoid.PlatformStand = false
     end
 end)
