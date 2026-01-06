@@ -4,8 +4,8 @@ local plr = Players.LocalPlayer
 
 -- --- INTERFACE ---
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "FlingCustom"
-screenGui.Parent = plr:WaitForChild("PlayerGui") -- Mudado para PlayerGui para aparecer no PC
+screenGui.Name = "FlingEstabilizado"
+screenGui.Parent = plr:WaitForChild("PlayerGui")
 
 local main = Instance.new("Frame")
 main.Size = UDim2.new(0, 200, 0, 150)
@@ -15,13 +15,6 @@ main.Active = true
 main.Draggable = true
 main.Parent = screenGui
 Instance.new("UICorner", main)
-
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 30)
-title.Text = "FLING ANTI-QUEDA"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.BackgroundTransparency = 1
-title.Parent = main
 
 local inputForca = Instance.new("TextBox")
 inputForca.Size = UDim2.new(0.8, 0, 0, 30)
@@ -40,38 +33,45 @@ button.TextColor3 = Color3.fromRGB(255, 255, 255)
 button.Parent = main
 Instance.new("UICorner", button)
 
--- --- LÓGICA CORRIGIDA ---
+-- --- LÓGICA DE ESTABILIZAÇÃO TOTAL ---
 local ativado = false
 local noclipLoop
+local alturaFixa = 0
 
 button.MouseButton1Click:Connect(function()
     ativado = not ativado
     local char = plr.Character
     local root = char and char:FindFirstChild("HumanoidRootPart")
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
     
     if ativado and root then
         button.Text = "FLING: ON"
         button.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
         
+        alturaFixa = root.Position.Y -- Guarda a altura exata de quando ativaste
         local forcaDigitada = tonumber(inputForca.Text) or 5000
         
         local bva = Instance.new("BodyAngularVelocity")
         bva.Name = "FlingForce"
         bva.AngularVelocity = Vector3.new(0, forcaDigitada, 0)
-        bva.MaxTorque = Vector3.new(math.huge, math.huge, math.huge) -- Torque total
+        -- O SEGREDO: Só aplicamos torque no eixo Y (giro), X e Z ficam travados
+        bva.MaxTorque = Vector3.new(0, math.huge, 0) 
         bva.P = math.huge
         bva.Parent = root
         
-        -- Loop de Estabilização
         noclipLoop = RunService.PreSimulation:Connect(function()
             if char and root then
-                -- Anti-Recuo e Anti-Queda
-                root.Velocity = Vector3.new(root.Velocity.X, 0, root.Velocity.Z) -- Zera queda (Y)
+                -- 1. FORÇAR FICAR EM PÉ: Impede o boneco de inclinar para os lados
+                root.CFrame = CFrame.new(root.Position.X, alturaFixa, root.Position.Z) * CFrame.Angles(0, math.rad(root.Orientation.Y), 0)
                 
-                -- Noclip Seletivo
+                -- 2. ZERAR VELOCIDADE VERTICAL: Impede de afundar ou voar
+                root.Velocity = Vector3.new(root.Velocity.X, 0, root.Velocity.Z)
+                root.RotVelocity = Vector3.new(0, root.RotVelocity.Y, 0)
+
+                -- 3. NOCLIP SELETIVO
                 for _, part in pairs(char:GetDescendants()) do
                     if part:IsA("BasePart") then
-                        part.CanCollide = false -- Desativa colisão para passar por players
+                        part.CanCollide = false
                     end
                 end
             end
