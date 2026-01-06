@@ -1,83 +1,87 @@
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local plr = Players.LocalPlayer
+-- Script de Empurrão Aleatório por Colisão (Sem Bloco Visível)
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
 
--- --- INTERFACE ---
+-- Interface (GUI)
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "FlingCustom"
-screenGui.Parent = game.CoreGui
-
-local main = Instance.new("Frame")
-main.Size = UDim2.new(0, 200, 0, 150)
-main.Position = UDim2.new(0.5, -100, 0.2, 0)
-main.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-main.Active = true
-main.Draggable = true
-main.Parent = screenGui
-Instance.new("UICorner", main)
-
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 30)
-title.Text = "AJUSTE DE FLING"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.BackgroundTransparency = 1
-title.Parent = main
-
-local inputForca = Instance.new("TextBox")
-inputForca.Size = UDim2.new(0.8, 0, 0, 30)
-inputForca.Position = UDim2.new(0.1, 0, 0.3, 0)
-inputForca.Text = "5000" -- Força padrão (mude aqui)
-inputForca.PlaceholderText = "Digite a força..."
-inputForca.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-inputForca.TextColor3 = Color3.fromRGB(0, 255, 0)
-inputForca.Parent = main
+screenGui.Name = "FlingAleatorioGui"
+screenGui.Parent = player:WaitForChild("PlayerGui")
+screenGui.ResetOnSpawn = false
 
 local button = Instance.new("TextButton")
-button.Size = UDim2.new(0.8, 0, 0, 40)
-button.Position = UDim2.new(0.1, 0, 0.6, 0)
-button.Text = "FLING: OFF"
+button.Size = UDim2.new(0, 160, 0, 45)
+button.Position = UDim2.new(0.5, -80, 0.05, 0)
+button.Text = "FLING: DESLIGADO"
 button.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
 button.TextColor3 = Color3.fromRGB(255, 255, 255)
-button.Parent = main
-Instance.new("UICorner", button)
+button.Font = Enum.Font.SourceSansBold
+button.TextSize = 16
+button.Parent = screenGui
 
--- --- LÓGICA ---
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 10)
+corner.Parent = button
+
 local ativado = false
-local noclipLoop
+local tool = nil
 
+-- Função de Arremesso Aleatório
+local function criarFling()
+    local t = Instance.new("Tool")
+    t.Name = " "
+    t.RequiresHandle = true
+    t.CanBeDropped = false
+    
+    local handle = Instance.new("Part")
+    handle.Name = "Handle"
+    handle.Size = Vector3.new(4, 5, 4) -- Área maior para tocar fácil
+    handle.Transparency = 1 -- 100% Invisível (sem bloco azul)
+    handle.CanCollide = false
+    handle.Massless = true
+    handle.Parent = t
+    
+    handle.Touched:Connect(function(hit)
+        if not ativado then return end
+        local target = hit.Parent
+        local targetHum = target:FindFirstChildOfClass("Humanoid")
+        local targetRoot = target:FindFirstChild("HumanoidRootPart")
+        
+        if targetHum and targetRoot and target ~= player.Character then
+            if not target:FindFirstChild("FlingForce") then
+                local tag = Instance.new("BoolValue", target)
+                tag.Name = "FlingForce"
+                game.Debris:AddItem(tag, 0.3) -- Rapidez para tocar em vários seguidos
+                
+                targetHum.PlatformStand = true
+                
+                -- Cálculo de direção e força aleatória
+                local direcaoBase = (targetRoot.Position - player.Character.HumanoidRootPart.Position).Unit
+                local forcaAleatoria = math.random(150, 250) -- Distância legal e variada
+                local giroAleatorio = math.random(-50, 50)
+                
+                -- Aplica o impulso caótico
+                targetRoot.Velocity = (direcaoBase + Vector3.new(0, 0.3, 0)) * forcaAleatoria
+                targetRoot.RotVelocity = Vector3.new(giroAleatorio, giroAleatorio, giroAleatorio)
+                
+                task.wait(1.5)
+                targetHum.PlatformStand = false
+            end
+        end
+    end)
+    return t
+end
+
+-- Lógica do Botão
 button.MouseButton1Click:Connect(function()
     ativado = not ativado
-    local char = plr.Character
-    local root = char and char:FindFirstChild("HumanoidRootPart")
-    
     if ativado then
-        button.Text = "FLING: ON"
+        button.Text = "FLING: ATIVO"
         button.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
-        
-        -- Cria a força baseada no que você digitou
-        local forcaDigitada = tonumber(inputForca.Text) or 5000
-        
-        local bva = Instance.new("BodyAngularVelocity")
-        bva.Name = "FlingForce"
-        bva.AngularVelocity = Vector3.new(0, forcaDigitada, 0)
-        bva.MaxTorque = Vector3.new(0, math.huge, 0)
-        bva.P = math.huge
-        bva.Parent = root
-        
-        -- NOCLIP: Essencial para você não ser arremessado de volta
-        noclipLoop = RunService.Stepped:Connect(function()
-            for _, part in pairs(char:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = false
-                end
-            end
-        end)
+        tool = criarFling()
+        tool.Parent = player.Backpack
     else
-        button.Text = "FLING: OFF"
+        button.Text = "FLING: DESLIGADO"
         button.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
-        if noclipLoop then noclipLoop:Disconnect() end
-        if root and root:FindFirstChild("FlingForce") then
-            root.FlingForce:Destroy()
-        end
+        if tool then tool:Destroy() end
     end
 end)
