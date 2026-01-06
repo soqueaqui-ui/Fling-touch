@@ -5,7 +5,7 @@ local plr = Players.LocalPlayer
 -- --- INTERFACE ---
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "FlingCustom"
-screenGui.Parent = game.CoreGui
+screenGui.Parent = plr:WaitForChild("PlayerGui") -- Mudado para PlayerGui para aparecer no PC
 
 local main = Instance.new("Frame")
 main.Size = UDim2.new(0, 200, 0, 150)
@@ -18,7 +18,7 @@ Instance.new("UICorner", main)
 
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0, 30)
-title.Text = "AJUSTE DE FLING"
+title.Text = "FLING ANTI-QUEDA"
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.BackgroundTransparency = 1
 title.Parent = main
@@ -26,8 +26,7 @@ title.Parent = main
 local inputForca = Instance.new("TextBox")
 inputForca.Size = UDim2.new(0.8, 0, 0, 30)
 inputForca.Position = UDim2.new(0.1, 0, 0.3, 0)
-inputForca.Text = "5000" -- Força padrão (mude aqui)
-inputForca.PlaceholderText = "Digite a força..."
+inputForca.Text = "5000"
 inputForca.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 inputForca.TextColor3 = Color3.fromRGB(0, 255, 0)
 inputForca.Parent = main
@@ -41,7 +40,7 @@ button.TextColor3 = Color3.fromRGB(255, 255, 255)
 button.Parent = main
 Instance.new("UICorner", button)
 
--- --- LÓGICA ---
+-- --- LÓGICA CORRIGIDA ---
 local ativado = false
 local noclipLoop
 
@@ -50,25 +49,30 @@ button.MouseButton1Click:Connect(function()
     local char = plr.Character
     local root = char and char:FindFirstChild("HumanoidRootPart")
     
-    if ativado then
+    if ativado and root then
         button.Text = "FLING: ON"
         button.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
         
-        -- Cria a força baseada no que você digitou
         local forcaDigitada = tonumber(inputForca.Text) or 5000
         
         local bva = Instance.new("BodyAngularVelocity")
         bva.Name = "FlingForce"
         bva.AngularVelocity = Vector3.new(0, forcaDigitada, 0)
-        bva.MaxTorque = Vector3.new(0, math.huge, 0)
+        bva.MaxTorque = Vector3.new(math.huge, math.huge, math.huge) -- Torque total
         bva.P = math.huge
         bva.Parent = root
         
-        -- NOCLIP: Essencial para você não ser arremessado de volta
-        noclipLoop = RunService.Stepped:Connect(function()
-            for _, part in pairs(char:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = false
+        -- Loop de Estabilização
+        noclipLoop = RunService.PreSimulation:Connect(function()
+            if char and root then
+                -- Anti-Recuo e Anti-Queda
+                root.Velocity = Vector3.new(root.Velocity.X, 0, root.Velocity.Z) -- Zera queda (Y)
+                
+                -- Noclip Seletivo
+                for _, part in pairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = false -- Desativa colisão para passar por players
+                    end
                 end
             end
         end)
