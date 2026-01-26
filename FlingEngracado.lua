@@ -5,6 +5,8 @@ local plr = Players.LocalPlayer
 -- --- INTERFACE ---
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "FlingEstabilizado"
+-- SOLUÇÃO PARA NÃO SUMIR AO MORRER:
+screenGui.ResetOnSpawn = false 
 screenGui.Parent = plr:WaitForChild("PlayerGui")
 
 local main = Instance.new("Frame")
@@ -32,6 +34,19 @@ button.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
 button.TextColor3 = Color3.fromRGB(255, 255, 255)
 button.Parent = main
 Instance.new("UICorner", button)
+
+-- --- LÓGICA DE ANTIDANO DE QUEDA (Exemplo Desastres Naturais) ---
+RunService.Stepped:Connect(function()
+    local char = plr.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    if root then
+        -- Se a velocidade de queda for muito alta, ele estabiliza levemente
+        -- Isso evita que o script de dano do jogo detecte o impacto forte
+        if root.Velocity.Y < -50 then
+            root.Velocity = Vector3.new(root.Velocity.X, -50, root.Velocity.Z)
+        end
+    end
+end)
 
 -- --- LÓGICA DE ESTABILIZAÇÃO TOTAL ---
 local ativado = false
